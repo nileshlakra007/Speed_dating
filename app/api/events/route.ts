@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { doorCode, eventCode, handle, id } from "@/lib/api";
 import { recordEventOwnership, requireHost } from "@/lib/auth";
+import { parseGroups } from "@/lib/groups";
 import { createEvent } from "@/lib/store";
-import { ApiError, EventData, EventMode } from "@/lib/types";
+import { ApiError, Category, EventData, EventMode, Grouping } from "@/lib/types";
 
 const MODES: EventMode[] = ["dating", "mixer", "networking", "custom"];
 const MODE_LABELS: Record<string, string> = {
@@ -23,25 +24,32 @@ export const POST = handle(async (req) => {
       : MODE_LABELS[mode];
   const roundMinutes = Math.min(120, Math.max(1, Number(body.roundMinutes) || 10));
   const crossCategory = !!body.crossCategory;
-  const rawCategories: { name?: string; cap?: number }[] = Array.isArray(
-    body.categories
-  )
+  const rawCategories: unknown[] = Array.isArray(body.categories)
     ? body.categories
     : [];
 
   if (!title) throw new ApiError("Event needs a title");
   if (mode === "custom" && !vibeLabel)
     throw new ApiError("Give your custom vibe a name");
-  const categories = rawCategories
-    .map((c, i) => ({
+
+  const grouping: Grouping =
+    body.groupingType === "range"
+      ? {
+          type: "range",
+          attribute:
+            String(body.attribute ?? "").trim().slice(0, 20) || "Age",
+        }
+      : { type: "label" };
+
+  let categories: Category[];
+  if (rawCategories.length === 0 && grouping.type === "label") {
+    categories = [{ id: "c1", name: "Everyone", cap: 100 }];
+  } else {
+    categories = parseGroups(rawCategories, grouping).map((c, i) => ({
+      ...c,
       id: `c${i + 1}`,
-      name: String(c.name ?? "").trim().slice(0, 24),
-      cap: Math.min(500, Math.max(1, Number(c.cap) || 10)),
-    }))
-    .filter((c) => c.name);
-  if (categories.length === 0)
-    categories.push({ id: "c1", name: "Everyone", cap: 100 });
-  if (categories.length > 6) throw new ApiError("Maximum 6 groups");
+    }));
+  }
   if (crossCategory && categories.length !== 2)
     throw new ApiError("Cross-group matching needs exactly 2 groups");
 
@@ -54,6 +62,7 @@ export const POST = handle(async (req) => {
     mode,
     vibeLabel,
     crossCategory,
+    grouping,
     categories,
     roundMinutes,
     matchingMode: "random",

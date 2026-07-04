@@ -16,6 +16,15 @@ export interface Category {
   id: string;
   name: string;
   cap: number;
+  /** set when the event groups by a numeric range (e.g. age 18–25) */
+  min?: number;
+  max?: number;
+}
+
+export interface Grouping {
+  type: "label" | "range";
+  /** what the range measures, e.g. "Age" — asked of guests when joining */
+  attribute?: string;
 }
 
 export interface Attendee {
@@ -68,6 +77,7 @@ export interface EventData {
   mode: EventMode;
   vibeLabel: string; // display label; free text when mode === "custom"
   crossCategory: boolean; // only match across the two categories (dating style)
+  grouping: Grouping;
   categories: Category[];
   roundMinutes: number;
   matchingMode: MatchingMode;

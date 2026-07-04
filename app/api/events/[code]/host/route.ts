@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { handle } from "@/lib/api";
 import { requireHost } from "@/lib/auth";
+import { parseGroups } from "@/lib/groups";
 import { buildRound } from "@/lib/matching";
 import { mutateEvent } from "@/lib/store";
-import { ApiError, EventMode } from "@/lib/types";
+import { ApiError, Category, EventMode } from "@/lib/types";
 import { hostView } from "@/lib/views";
 import { promoteWaitlist } from "@/lib/waitlist";
 
@@ -107,28 +108,26 @@ export const POST = handle(async (req, ctx: { params: Promise<{ code: string }> 
             Math.max(1, Number(body.roundMinutes) || event.roundMinutes)
           );
         }
+        if (body.attribute !== undefined && event.grouping?.type === "range") {
+          event.grouping.attribute =
+            String(body.attribute).trim().slice(0, 20) ||
+            event.grouping.attribute;
+        }
         if (Array.isArray(body.categories)) {
-          const next = body.categories
-            .map((c: { id?: string; name?: string; cap?: number }, i: number) => ({
-              id: c.id || `n${i + 1}`,
-              name: String(c.name ?? "").trim().slice(0, 24),
-              cap: Math.min(500, Math.max(1, Number(c.cap) || 10)),
-            }))
-            .filter((c: { name: string }) => c.name);
-          if (next.length === 0 || next.length > 6)
-            throw new ApiError("Between 1 and 6 groups");
+          const grouping = event.grouping ?? { type: "label" as const };
+          const next = parseGroups(body.categories, grouping);
           // a group with people in it can't be deleted
-          const keptIds = new Set(next.map((c: { id: string }) => c.id));
+          const keptIds = new Set(next.map((c) => c.id).filter(Boolean));
           for (const a of Object.values(event.attendees)) {
             if (!a.left && !keptIds.has(a.category))
               throw new ApiError(
                 "Can't remove a group that already has people in it"
               );
           }
-          // re-id new groups so they don't collide with existing ones
+          // assign fresh non-colliding ids to newly added groups
           let counter = event.categories.length;
-          event.categories = next.map((c: { id: string; name: string; cap: number }) =>
-            c.id.startsWith("n") ? { ...c, id: `c${++counter}` } : c
+          event.categories = next.map((c) =>
+            c.id ? (c as Category) : { ...c, id: `c${++counter}` }
           );
         }
         if (body.crossCategory !== undefined) {

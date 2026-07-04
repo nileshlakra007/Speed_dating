@@ -125,6 +125,7 @@ export function hostView(event: EventData) {
     doorCode: event.doorCode,
     roundMinutes: event.roundMinutes,
     crossCategory: event.crossCategory,
+    grouping: event.grouping ?? { type: "label" },
     serverNow: Date.now(),
     categories: categoryCounts(event),
     attendees: Object.values(event.attendees)

@@ -95,15 +95,23 @@ function JoinScreen({
   anon: any;
   onJoined: (userId: string, token: string) => void;
 }) {
+  const isRange = anon.grouping?.type === "range";
+  const attribute: string = anon.grouping?.attribute || "Age";
   const [name, setName] = useState("");
   const [emoji, setEmoji] = useState("🦊");
+  const [value, setValue] = useState("");
   const [category, setCategory] = useState(
     anon.categories.length === 1 ? anon.categories[0].id : ""
   );
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
 
-  const selected = anon.categories.find((c: any) => c.id === category);
+  const selected = isRange
+    ? anon.categories.find(
+        (c: any) =>
+          value !== "" && Number(value) >= c.min && Number(value) <= c.max
+      )
+    : anon.categories.find((c: any) => c.id === category);
 
   const join = async () => {
     setBusy(true);
@@ -111,7 +119,9 @@ function JoinScreen({
     try {
       const res = await api<{ userId: string; token: string; waitlisted: boolean }>(
         `/api/events/${code}/join`,
-        { name, emoji, category }
+        isRange
+          ? { name, emoji, value: Number(value) }
+          : { name, emoji, category }
       );
       onJoined(res.userId, res.token);
     } catch (e: any) {
@@ -125,7 +135,7 @@ function JoinScreen({
       <h1 className="mt-6 font-display text-3xl font-medium">{anon.title}</h1>
       <p className="mt-1 text-white/50">
         You&apos;re joining with code{" "}
-        <span className="font-bold tracking-widest text-gold-light">{anon.code}</span>
+        <span className="font-bold tracking-widest text-brand-light">{anon.code}</span>
       </p>
       {anon.status === "ended" ? (
         <p className="card mt-6 text-white/60">This event has ended 👋</p>
@@ -148,7 +158,7 @@ function JoinScreen({
                 <button
                   key={e}
                   className={`rounded-xl p-1.5 text-2xl transition ${
-                    emoji === e ? "bg-gold/20 ring-2 ring-gold" : "bg-white/5"
+                    emoji === e ? "bg-brand/20 ring-2 ring-brand" : "bg-white/5"
                   }`}
                   onClick={() => setEmoji(e)}
                 >
@@ -157,25 +167,52 @@ function JoinScreen({
               ))}
             </div>
           </div>
-          {anon.categories.length > 1 && (
+          {isRange ? (
             <div>
-              <label className="text-sm font-semibold text-white/60">I&apos;m joining as</label>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {anon.categories.map((c: any) => (
-                  <button
-                    key={c.id}
-                    className={`chip ${category === c.id ? "chip-on" : ""}`}
-                    onClick={() => setCategory(c.id)}
-                  >
-                    {c.name}
-                    {c.full ? " · waitlist" : ` · ${c.cap - c.registered} left`}
-                  </button>
-                ))}
-              </div>
+              <label className="text-sm font-semibold text-white/60">
+                Your {attribute.toLowerCase()}
+              </label>
+              <input
+                className="input mt-2 w-32 text-center text-lg font-semibold"
+                type="number"
+                inputMode="numeric"
+                placeholder="—"
+                value={value}
+                onChange={(e) => setValue(e.target.value)}
+              />
+              {value !== "" && !selected && (
+                <p className="mt-2 text-sm text-red-300/90">
+                  No group covers {attribute.toLowerCase()} {value} at this event.
+                </p>
+              )}
+              {selected && !selected.full && (
+                <p className="mt-2 text-sm text-white/45">
+                  You&apos;ll join the {selected.name} group ·{" "}
+                  {selected.cap - selected.registered} spots left.
+                </p>
+              )}
             </div>
+          ) : (
+            anon.categories.length > 1 && (
+              <div>
+                <label className="text-sm font-semibold text-white/60">I&apos;m joining as</label>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {anon.categories.map((c: any) => (
+                    <button
+                      key={c.id}
+                      className={`chip ${category === c.id ? "chip-on" : ""}`}
+                      onClick={() => setCategory(c.id)}
+                    >
+                      {c.name}
+                      {c.full ? " · waitlist" : ` · ${c.cap - c.registered} left`}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )
           )}
           {selected?.full && (
-            <p className="rounded-xl bg-gold/10 p-3 text-sm text-gold-light">
+            <p className="rounded-xl bg-brand/10 p-3 text-sm text-brand-light">
               This group is full — you&apos;ll join the waitlist and get in if a spot
               opens up.
             </p>
@@ -183,7 +220,7 @@ function JoinScreen({
           {err && <p className="text-sm text-red-300/90">{err}</p>}
           <button
             className="btn-primary w-full text-lg"
-            disabled={busy || !name.trim() || !category}
+            disabled={busy || !name.trim() || (isRange ? !selected : !category)}
             onClick={join}
           >
             {busy ? "Joining…" : selected?.full ? "Join waitlist" : "I'm in"}
@@ -264,7 +301,7 @@ function AttendeeScreen({
         <Countdown
           endsAt={round.endsAt}
           serverNow={view.serverNow}
-          className="mt-3 block font-display text-3xl font-medium text-gold-light"
+          className="mt-3 block font-display text-3xl font-medium text-brand-light"
         />
       </div>
     );
@@ -365,7 +402,7 @@ function MatchCard({
         <Countdown
           endsAt={round.endsAt}
           serverNow={view.serverNow}
-          className="text-2xl font-semibold text-gold-light"
+          className="text-2xl font-semibold text-brand-light"
         />
       </div>
 

@@ -4,17 +4,37 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { AuthCard } from "@/components/AuthCard";
-import { GROUP_PRESETS, GroupDraft, GroupsEditor } from "@/components/GroupsEditor";
+import {
+  GroupDraft,
+  GroupsEditor,
+  LABEL_QUICKFILLS,
+  RANGE_QUICKFILLS,
+} from "@/components/GroupsEditor";
 import { TwynLogo } from "@/components/Logo";
 import { api, clearSession, loadSession } from "@/lib/client";
 
 type Mode = "dating" | "mixer" | "networking" | "custom";
+type GroupingChoice = "single" | "label" | "range";
 
 const VIBES: { key: Mode; label: string }[] = [
   { key: "dating", label: "Dating" },
   { key: "mixer", label: "Social mixer" },
   { key: "networking", label: "Networking" },
   { key: "custom", label: "Your own" },
+];
+
+const GROUPING_CHOICES: { key: GroupingChoice; label: string; hint: string }[] = [
+  { key: "single", label: "One group", hint: "Everyone joins the same pool." },
+  {
+    key: "label",
+    label: "Named groups",
+    hint: "You define the groups — gender, roles, teams, anything. Guests pick theirs.",
+  },
+  {
+    key: "range",
+    label: "Number ranges",
+    hint: "You define ranges (age, experience…). Guests enter their number and are placed automatically.",
+  },
 ];
 
 const ROUND_CHOICES = [3, 5, 10, 15, 20];
@@ -64,7 +84,9 @@ export default function CreateEvent() {
         )}
       </div>
 
-      <h1 className="mt-8 font-display text-4xl font-medium">Host an event</h1>
+      <h1 className="mt-8 font-display text-4xl font-medium">
+        Host an <span className="grad-text">event</span>
+      </h1>
 
       {authed === null && <p className="mt-8 text-white/35">One moment…</p>}
       {authed === false && <AuthCard onAuthed={() => loadMe()} />}
@@ -100,30 +122,44 @@ function CreateForm({ onCreated }: { onCreated: (code: string) => void }) {
   const [title, setTitle] = useState("");
   const [mode, setMode] = useState<Mode>("mixer");
   const [vibeLabel, setVibeLabel] = useState("");
-  const [preset, setPreset] = useState("everyone");
-  const [groups, setGroups] = useState<GroupDraft[]>(
-    GROUP_PRESETS[0].groups.map((g) => ({ ...g }))
-  );
+  const [grouping, setGrouping] = useState<GroupingChoice>("single");
+  const [attribute, setAttribute] = useState("Age");
+  const [singleCap, setSingleCap] = useState(40);
+  const [groups, setGroups] = useState<GroupDraft[]>([
+    { name: "", cap: 20 },
+    { name: "", cap: 20 },
+  ]);
   const [cross, setCross] = useState(false);
   const [roundMinutes, setRoundMinutes] = useState(10);
   const [customRound, setCustomRound] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
+  const pickGrouping = (g: GroupingChoice) => {
+    setGrouping(g);
+    setCross(false);
+    if (g === "label") setGroups([{ name: "", cap: 20 }, { name: "", cap: 20 }]);
+    if (g === "range")
+      setGroups([
+        { name: "", cap: 20, min: "", max: "" },
+        { name: "", cap: 20, min: "", max: "" },
+      ]);
+  };
+
   const pickVibe = (m: Mode) => {
     setMode(m);
     if (m === "dating") {
-      applyPreset("gender");
+      setGrouping("label");
+      setGroups(LABEL_QUICKFILLS[0].groups.map((g) => ({ ...g })));
       setCross(true);
     }
   };
 
-  const applyPreset = (key: string) => {
-    const p = GROUP_PRESETS.find((p) => p.key === key)!;
-    setPreset(key);
-    setGroups(p.groups.map((g) => ({ ...g })));
-    setCross(false);
-  };
+  const groupsValid =
+    grouping === "single" ||
+    (grouping === "label"
+      ? groups.every((g) => g.name.trim())
+      : groups.every((g) => g.min !== "" && g.max !== ""));
 
   const submit = async () => {
     setBusy(true);
@@ -134,8 +170,11 @@ function CreateForm({ onCreated }: { onCreated: (code: string) => void }) {
         title,
         mode,
         vibeLabel,
-        categories: groups,
-        crossCategory: cross && groups.length === 2,
+        groupingType: grouping === "range" ? "range" : "label",
+        attribute,
+        categories:
+          grouping === "single" ? [{ name: "Everyone", cap: singleCap }] : groups,
+        crossCategory: cross && groups.length === 2 && grouping !== "single",
         roundMinutes,
       });
       onCreated(res.code);
@@ -185,25 +224,98 @@ function CreateForm({ onCreated }: { onCreated: (code: string) => void }) {
         </div>
 
         <div>
-          <label className="label">How should people be grouped?</label>
+          <label className="label">How should guests be grouped?</label>
           <div className="mt-2 flex flex-wrap gap-2">
-            {GROUP_PRESETS.map((p) => (
+            {GROUPING_CHOICES.map((g) => (
               <button
-                key={p.key}
+                key={g.key}
                 type="button"
-                className={`chip ${preset === p.key ? "chip-on" : ""}`}
-                onClick={() => applyPreset(p.key)}
+                className={`chip ${grouping === g.key ? "chip-on" : ""}`}
+                onClick={() => pickGrouping(g.key)}
               >
-                {p.label}
+                {g.label}
               </button>
             ))}
           </div>
-          <div className="mt-3">
-            <GroupsEditor groups={groups} onChange={setGroups} />
-          </div>
+          <p className="mt-2 text-xs text-white/35">
+            {GROUPING_CHOICES.find((g) => g.key === grouping)?.hint}
+          </p>
+
+          {grouping === "single" && (
+            <div className="mt-3 flex items-center gap-3">
+              <input
+                className="input w-24 text-center"
+                type="number"
+                min={2}
+                max={500}
+                value={singleCap}
+                onChange={(e) => setSingleCap(Number(e.target.value))}
+              />
+              <span className="text-sm text-white/40">total spots</span>
+            </div>
+          )}
+
+          {grouping === "label" && (
+            <>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {LABEL_QUICKFILLS.map((q) => (
+                  <button
+                    key={q.label}
+                    type="button"
+                    className="rounded-full border border-dashed border-white/20 px-3 py-1 text-xs text-white/50 transition hover:border-brand/50 hover:text-white"
+                    onClick={() => setGroups(q.groups.map((g) => ({ ...g })))}
+                  >
+                    {q.label}
+                  </button>
+                ))}
+              </div>
+              <div className="mt-3">
+                <GroupsEditor groups={groups} onChange={setGroups} mode="label" />
+              </div>
+            </>
+          )}
+
+          {grouping === "range" && (
+            <>
+              <div className="mt-3">
+                <label className="label">Range of what?</label>
+                <input
+                  className="input mt-1.5"
+                  placeholder="Age, years of experience…"
+                  value={attribute}
+                  maxLength={20}
+                  onChange={(e) => setAttribute(e.target.value)}
+                />
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {RANGE_QUICKFILLS.map((q) => (
+                  <button
+                    key={q.label}
+                    type="button"
+                    className="rounded-full border border-dashed border-white/20 px-3 py-1 text-xs text-white/50 transition hover:border-brand/50 hover:text-white"
+                    onClick={() => {
+                      setAttribute(q.attribute);
+                      setGroups(q.groups.map((g) => ({ ...g })));
+                    }}
+                  >
+                    {q.label}
+                  </button>
+                ))}
+              </div>
+              <div className="mt-3">
+                <GroupsEditor groups={groups} onChange={setGroups} mode="range" />
+              </div>
+            </>
+          )}
+
+          {grouping !== "single" && (
+            <p className="mt-2 text-xs text-white/30">
+              When a group is full, new joiners are waitlisted.
+            </p>
+          )}
         </div>
 
-        {groups.length === 2 && (
+        {grouping !== "single" && groups.length === 2 && (
           <button
             type="button"
             className={`chip w-full ${cross ? "chip-on" : ""}`}
@@ -267,8 +379,9 @@ function CreateForm({ onCreated }: { onCreated: (code: string) => void }) {
         disabled={
           busy ||
           !title.trim() ||
-          groups.some((g) => !g.name.trim()) ||
-          (mode === "custom" && !vibeLabel.trim())
+          !groupsValid ||
+          (mode === "custom" && !vibeLabel.trim()) ||
+          (grouping === "range" && !attribute.trim())
         }
         onClick={submit}
       >

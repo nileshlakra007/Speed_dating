@@ -3,9 +3,9 @@
 @theme inline {
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-display: var(--font-playfair), Georgia, serif;
-  --color-gold: #c9a870;
-  --color-gold-light: #e8d5ab;
-  --color-ivory: #ece8df;
+  --color-brand: #a78bfa;
+  --color-brand-light: #e0d0ff;
+  --color-ivory: #f4f0ff;
 }
 
 :root {
@@ -13,58 +13,66 @@
 }
 
 body {
-  background: #0c0b09;
-  color: #ece8df;
+  background: #0e0a18;
+  color: #f4f0ff;
   min-height: 100dvh;
   font-family: var(--font-sans);
 }
 
 .bg-blobs {
   background:
-    radial-gradient(900px 500px at 50% -20%, rgba(201, 168, 112, 0.07), transparent 70%),
-    radial-gradient(700px 500px at 50% 120%, rgba(201, 168, 112, 0.04), transparent 70%);
+    radial-gradient(800px 500px at 80% -15%, rgba(139, 92, 246, 0.22), transparent 70%),
+    radial-gradient(600px 450px at -15% 35%, rgba(236, 72, 153, 0.14), transparent 70%),
+    radial-gradient(800px 600px at 55% 115%, rgba(251, 191, 36, 0.09), transparent 70%);
+  background-attachment: fixed;
 }
 
-.card {
-  @apply rounded-2xl border border-white/[0.07] bg-white/[0.03] p-6;
-}
+/* Component classes live in the components layer so Tailwind utility
+   classes (w-24, flex-1, …) can still override them per-element. */
+@layer components {
+  .card {
+    @apply rounded-2xl border border-white/[0.09] bg-white/[0.04] p-6 backdrop-blur-sm;
+  }
 
-.label {
-  @apply text-[11px] font-semibold uppercase tracking-[0.18em] text-white/40;
-}
+  .label {
+    @apply text-[11px] font-semibold uppercase tracking-[0.18em] text-white/40;
+  }
 
-.btn-primary {
-  @apply inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl px-6 py-3.5 text-sm font-semibold tracking-wide text-black transition hover:opacity-90 active:scale-[0.98] disabled:opacity-30 disabled:active:scale-100;
-  background: linear-gradient(160deg, #f2ead9, #d9cdb4);
-}
+  .btn-primary {
+    @apply inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl px-6 py-3.5 text-sm font-bold tracking-wide text-white transition hover:brightness-110 active:scale-[0.98] disabled:opacity-30 disabled:active:scale-100;
+    background: linear-gradient(135deg, #8b5cf6, #d946ef 55%, #ec4899);
+    box-shadow: 0 10px 36px -10px rgba(217, 70, 239, 0.55);
+  }
 
-.btn-ghost {
-  @apply inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-white/15 bg-transparent px-6 py-3.5 text-sm font-semibold tracking-wide text-ivory transition hover:border-white/30 hover:bg-white/[0.04] active:scale-[0.98] disabled:opacity-30 disabled:active:scale-100;
-}
+  .btn-ghost {
+    @apply inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/[0.03] px-6 py-3.5 text-sm font-semibold tracking-wide text-ivory transition hover:border-brand/50 hover:bg-brand/10 active:scale-[0.98] disabled:opacity-30 disabled:active:scale-100;
+  }
 
-.btn-danger {
-  @apply inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-red-400/25 bg-transparent px-6 py-3.5 text-sm font-semibold tracking-wide text-red-300/80 transition hover:bg-red-500/10 active:scale-[0.98] disabled:opacity-30 disabled:active:scale-100;
-}
+  .btn-danger {
+    @apply inline-flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-red-400/25 bg-transparent px-6 py-3.5 text-sm font-semibold tracking-wide text-red-300/80 transition hover:bg-red-500/10 active:scale-[0.98] disabled:opacity-30 disabled:active:scale-100;
+  }
 
-.input {
-  @apply w-full rounded-xl border border-white/[0.12] bg-white/[0.03] px-4 py-3.5 text-ivory outline-none transition placeholder:text-white/25 focus:border-gold/60;
-}
+  .input {
+    @apply w-full rounded-xl border border-white/[0.12] bg-white/[0.04] px-4 py-3.5 text-ivory outline-none transition placeholder:text-white/25 focus:border-brand/70 focus:bg-brand/[0.06];
+  }
 
-.chip {
-  @apply cursor-pointer rounded-full border border-white/[0.12] bg-transparent px-4 py-2 text-sm font-medium text-white/70 transition hover:border-white/25;
-}
+  .chip {
+    @apply cursor-pointer rounded-full border border-white/[0.13] bg-white/[0.03] px-4 py-2 text-sm font-medium text-white/70 transition hover:border-brand/40 hover:text-white;
+  }
 
-.chip-on {
-  @apply border-gold/70 bg-gold/10 text-gold-light;
+  .chip-on {
+    @apply border-brand/80 bg-brand/15 text-brand-light;
+    box-shadow: 0 0 18px -6px rgba(167, 139, 250, 0.5);
+  }
+
+  .hairline {
+    @apply h-px w-full bg-white/[0.08];
+  }
 }
 
 .grad-text {
-  background: linear-gradient(150deg, #f0e5cb, #c9a870);
+  background: linear-gradient(120deg, #c4b5fd 0%, #f0abfc 45%, #fcd34d 100%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
-}
-
-.hairline {
-  @apply h-px w-full bg-white/[0.07];
 }

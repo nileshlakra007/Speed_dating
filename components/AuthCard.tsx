@@ -35,7 +35,7 @@ export function AuthCard({ onAuthed }: { onAuthed: (name: string) => void }) {
             key={t}
             className={`pb-2 text-sm font-semibold tracking-wide transition ${
               tab === t
-                ? "border-b border-gold text-ivory"
+                ? "border-b border-brand text-ivory"
                 : "text-white/40 hover:text-white/70"
             }`}
             onClick={() => {

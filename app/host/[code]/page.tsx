@@ -134,7 +134,7 @@ export default function HostDashboard() {
       <div className="mt-5 grid grid-cols-2 gap-3">
         <button className="card text-left transition hover:bg-white/[0.05]" onClick={copyLink}>
           <div className="label">{copied ? "Copied ✓" : "Invite · tap to copy"}</div>
-          <div className="mt-1.5 text-2xl font-semibold tracking-[0.2em] text-gold-light">
+          <div className="mt-1.5 text-2xl font-semibold tracking-[0.2em] text-brand-light">
             {view.code}
           </div>
         </button>
@@ -164,7 +164,7 @@ export default function HostDashboard() {
                   className="h-full rounded-full"
                   style={{
                     width: `${Math.min(100, (c.registered / c.cap) * 100)}%`,
-                    background: "linear-gradient(90deg, #c9a870, #e8d5ab)",
+                    background: "linear-gradient(90deg, #8b5cf6, #ec4899)",
                   }}
                 />
               </div>
@@ -187,7 +187,7 @@ export default function HostDashboard() {
             <Countdown
               endsAt={view.round.endsAt}
               serverNow={view.serverNow}
-              className="text-xl font-semibold text-gold-light"
+              className="text-xl font-semibold text-brand-light"
             />
           )}
         </div>
@@ -289,7 +289,7 @@ export default function HostDashboard() {
               </span>
               {a.waitlisted ? (
                 <button
-                  className="rounded-full border border-gold/40 px-3 py-1 text-xs font-semibold text-gold-light"
+                  className="rounded-full border border-brand/40 px-3 py-1 text-xs font-semibold text-brand-light"
                   disabled={busy}
                   onClick={() => act("promote", { userId: a.id })}
                 >
@@ -338,12 +338,20 @@ function EditPanel({
   busy: boolean;
   onSave: (patch: Record<string, unknown>) => void;
 }) {
+  const groupingMode: "label" | "range" = view.grouping?.type ?? "label";
   const [title, setTitle] = useState(view.title);
   const [mode, setMode] = useState(view.mode);
   const [vibeLabel, setVibeLabel] = useState(view.mode === "custom" ? view.vibeLabel : "");
+  const [attribute, setAttribute] = useState(view.grouping?.attribute ?? "Age");
   const [roundMinutes, setRoundMinutes] = useState(view.roundMinutes);
   const [groups, setGroups] = useState<GroupDraft[]>(
-    view.categories.map((c: any) => ({ id: c.id, name: c.name, cap: c.cap }))
+    view.categories.map((c: any) => ({
+      id: c.id,
+      name: c.name,
+      cap: c.cap,
+      min: c.min ?? "",
+      max: c.max ?? "",
+    }))
   );
   const [cross, setCross] = useState(view.crossCategory);
 
@@ -354,7 +362,7 @@ function EditPanel({
   );
 
   return (
-    <div className="card mt-4 space-y-5 border-gold/20">
+    <div className="card mt-4 space-y-5 border-brand/20">
       <p className="label">Edit event</p>
       <div>
         <label className="label">Name</label>
@@ -396,8 +404,22 @@ function EditPanel({
       </div>
       <div>
         <label className="label">Groups</label>
+        {groupingMode === "range" && (
+          <input
+            className="input mt-2"
+            placeholder="Range of what? e.g. Age"
+            value={attribute}
+            maxLength={20}
+            onChange={(e) => setAttribute(e.target.value)}
+          />
+        )}
         <div className="mt-2">
-          <GroupsEditor groups={groups} onChange={setGroups} lockedIds={lockedIds} />
+          <GroupsEditor
+            groups={groups}
+            onChange={setGroups}
+            mode={groupingMode}
+            lockedIds={lockedIds}
+          />
         </div>
       </div>
       {groups.length === 2 && (
@@ -427,12 +449,19 @@ function EditPanel({
       </div>
       <button
         className="btn-primary w-full"
-        disabled={busy || !title.trim() || groups.some((g) => !g.name.trim())}
+        disabled={
+          busy ||
+          !title.trim() ||
+          (groupingMode === "label"
+            ? groups.some((g) => !g.name.trim())
+            : groups.some((g) => g.min === "" || g.max === ""))
+        }
         onClick={() =>
           onSave({
             title,
             mode,
             vibeLabel,
+            attribute,
             roundMinutes,
             categories: groups,
             crossCategory: cross,

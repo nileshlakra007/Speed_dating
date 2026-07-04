@@ -46,10 +46,13 @@ export const GET = handle(async (req, ctx: { params: Promise<{ code: string }> }
       mode: event.mode,
       vibeLabel: event.vibeLabel,
       status: event.status,
+      grouping: event.grouping ?? { type: "label" },
       categories: categoryCounts(event).map((c) => ({
         id: c.id,
         name: c.name,
         cap: c.cap,
+        min: c.min,
+        max: c.max,
         registered: c.registered,
         waitlisted: c.waitlisted,
         full: c.registered >= c.cap,

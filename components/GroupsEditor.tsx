@@ -4,12 +4,14 @@ export interface GroupDraft {
   id?: string;
   name: string;
   cap: number;
+  min?: number | "";
+  max?: number | "";
 }
 
-export const GROUP_PRESETS: { key: string; label: string; groups: GroupDraft[] }[] = [
-  { key: "everyone", label: "Everyone", groups: [{ name: "Everyone", cap: 40 }] },
+export type GroupingMode = "label" | "range";
+
+export const LABEL_QUICKFILLS: { label: string; groups: GroupDraft[] }[] = [
   {
-    key: "gender",
     label: "Gender",
     groups: [
       { name: "Men", cap: 20 },
@@ -17,20 +19,37 @@ export const GROUP_PRESETS: { key: string; label: string; groups: GroupDraft[] }
     ],
   },
   {
-    key: "age",
-    label: "Age range",
+    label: "Mentors / Mentees",
     groups: [
-      { name: "18–25", cap: 15 },
-      { name: "26–35", cap: 15 },
-      { name: "36+", cap: 15 },
+      { name: "Mentors", cap: 15 },
+      { name: "Mentees", cap: 15 },
     ],
   },
   {
-    key: "custom",
-    label: "Custom",
+    label: "Founders / Investors",
     groups: [
-      { name: "", cap: 20 },
-      { name: "", cap: 20 },
+      { name: "Founders", cap: 20 },
+      { name: "Investors", cap: 10 },
+    ],
+  },
+];
+
+export const RANGE_QUICKFILLS: { label: string; attribute: string; groups: GroupDraft[] }[] = [
+  {
+    label: "Age brackets",
+    attribute: "Age",
+    groups: [
+      { name: "", cap: 15, min: 18, max: 25 },
+      { name: "", cap: 15, min: 26, max: 35 },
+      { name: "", cap: 15, min: 36, max: 60 },
+    ],
+  },
+  {
+    label: "Years of experience",
+    attribute: "Years of experience",
+    groups: [
+      { name: "", cap: 20, min: 0, max: 5 },
+      { name: "", cap: 20, min: 6, max: 40 },
     ],
   },
 ];
@@ -38,28 +57,68 @@ export const GROUP_PRESETS: { key: string; label: string; groups: GroupDraft[] }
 export function GroupsEditor({
   groups,
   onChange,
+  mode,
   lockedIds = new Set(),
 }: {
   groups: GroupDraft[];
   onChange: (groups: GroupDraft[]) => void;
-  /** groups that already have members — name/cap editable, not removable */
+  mode: GroupingMode;
+  /** groups that already have members — editable, not removable */
   lockedIds?: Set<string>;
 }) {
   const set = (i: number, patch: Partial<GroupDraft>) =>
     onChange(groups.map((g, j) => (j === i ? { ...g, ...patch } : g)));
 
+  const num = (v: string): number | "" => (v === "" ? "" : Number(v));
+
   return (
     <div>
+      {/* column headers */}
+      <div className="mb-1.5 flex items-center gap-2">
+        {mode === "range" ? (
+          <>
+            <span className="label flex-1 text-center">From</span>
+            <span className="label flex-1 text-center">To</span>
+            <span className="label w-24 text-center">Spots</span>
+          </>
+        ) : (
+          <>
+            <span className="label flex-1">Group name</span>
+            <span className="label w-24 text-center">Spots</span>
+          </>
+        )}
+        <span className="w-5" />
+      </div>
+
       <div className="space-y-2">
         {groups.map((g, i) => (
           <div key={g.id ?? `new-${i}`} className="flex items-center gap-2">
-            <input
-              className="input flex-1"
-              placeholder="Group name — anything works"
-              value={g.name}
-              maxLength={24}
-              onChange={(e) => set(i, { name: e.target.value })}
-            />
+            {mode === "range" ? (
+              <>
+                <input
+                  className="input flex-1 text-center"
+                  type="number"
+                  placeholder="18"
+                  value={g.min ?? ""}
+                  onChange={(e) => set(i, { min: num(e.target.value) })}
+                />
+                <input
+                  className="input flex-1 text-center"
+                  type="number"
+                  placeholder="25"
+                  value={g.max ?? ""}
+                  onChange={(e) => set(i, { max: num(e.target.value) })}
+                />
+              </>
+            ) : (
+              <input
+                className="input flex-1"
+                placeholder="e.g. Designers"
+                value={g.name}
+                maxLength={24}
+                onChange={(e) => set(i, { name: e.target.value })}
+              />
+            )}
             <input
               className="input w-24 text-center"
               type="number"
@@ -68,32 +127,37 @@ export function GroupsEditor({
               value={g.cap}
               onChange={(e) => set(i, { cap: Number(e.target.value) })}
             />
-            {groups.length > 1 && !(g.id && lockedIds.has(g.id)) && (
-              <button
-                type="button"
-                className="px-1 text-white/30 transition hover:text-red-300"
-                onClick={() => onChange(groups.filter((_, j) => j !== i))}
-              >
-                ✕
-              </button>
-            )}
+            <span className="w-5 text-center">
+              {groups.length > 1 && !(g.id && lockedIds.has(g.id)) && (
+                <button
+                  type="button"
+                  className="text-white/30 transition hover:text-red-300"
+                  onClick={() => onChange(groups.filter((_, j) => j !== i))}
+                >
+                  ✕
+                </button>
+              )}
+            </span>
           </div>
         ))}
       </div>
+
       {groups.length < 6 && (
         <button
           type="button"
-          className="mt-2 text-sm font-semibold text-gold-light/90 hover:text-gold-light"
-          onClick={() => onChange([...groups, { name: "", cap: 20 }])}
+          className="mt-2 text-sm font-semibold text-brand-light/90 hover:text-brand-light"
+          onClick={() =>
+            onChange([
+              ...groups,
+              mode === "range"
+                ? { name: "", cap: 20, min: "", max: "" }
+                : { name: "", cap: 20 },
+            ])
+          }
         >
           + add group
         </button>
       )}
-      <p className="mt-1.5 text-xs text-white/30">
-        Group people however fits your event — gender, age range, mentors &amp;
-        mentees, founders &amp; investors. When a group is full, new joiners are
-        waitlisted.
-      </p>
     </div>
   );
 }

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { handle, id } from "@/lib/api";
+import { resolveCategory } from "@/lib/groups";
 import { mutateEvent } from "@/lib/store";
 import { ApiError, Attendee } from "@/lib/types";
 
@@ -8,7 +9,6 @@ export const POST = handle(async (req, ctx: { params: Promise<{ code: string }> 
   const body = await req.json();
   const name = String(body.name ?? "").trim().slice(0, 30);
   const emoji = String(body.emoji ?? "🙂").slice(0, 8);
-  const category = String(body.category ?? "");
   if (!name) throw new ApiError("Enter your name");
 
   const userId = id(10);
@@ -17,8 +17,7 @@ export const POST = handle(async (req, ctx: { params: Promise<{ code: string }> 
 
   await mutateEvent(code, (event) => {
     if (event.status === "ended") throw new ApiError("This event has ended", 410);
-    const cat = event.categories.find((c) => c.id === category);
-    if (!cat) throw new ApiError("Pick a category");
+    const cat = resolveCategory(event, body);
 
     // Slot control: registered (non-waitlist, non-left) count vs cap.
     // The store's compare-and-swap makes this race-safe under concurrent joins.
