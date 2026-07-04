@@ -1,17 +1,21 @@
 import type { Metadata, Viewport } from "next";
-import { Space_Grotesk } from "next/font/google";
+import { Inter, Playfair_Display } from "next/font/google";
 import "./globals.css";
 
-const font = Space_Grotesk({ subsets: ["latin"] });
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
+const playfair = Playfair_Display({
+  subsets: ["latin"],
+  variable: "--font-playfair",
+});
 
 export const metadata: Metadata = {
   title: "twyn — find your twin in the room",
   description:
-    "IRL matching for events. Timed rounds, a shared symbol, zero awkward wandering.",
+    "Curated in-person matching. Timed rounds, a shared symbol, no awkward wandering.",
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0b0713",
+  themeColor: "#0c0b09",
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
@@ -24,7 +28,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body className={`${font.className} bg-blobs`}>{children}</body>
+      <body className={`${inter.variable} ${playfair.variable} bg-blobs font-sans`}>
+        {children}
+      </body>
     </html>
   );
 }

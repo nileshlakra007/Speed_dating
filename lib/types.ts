@@ -1,4 +1,13 @@
-export type EventMode = "dating" | "mixer" | "networking";
+export type EventMode = "dating" | "mixer" | "networking" | "custom";
+
+export interface HostAccount {
+  id: string;
+  name: string;
+  email: string; // stored lowercase
+  passwordHash: string; // salt.hash (PBKDF2-SHA256)
+  events: string[]; // codes of events this host owns
+  createdAt: number;
+}
 
 /** extend with "interest" | "networking" etc. as strategies are added */
 export type MatchingMode = "random";
@@ -52,10 +61,12 @@ export interface Feedback {
 
 export interface EventData {
   code: string;
-  hostToken: string;
+  hostId: string; // owning HostAccount
+  hostToken: string; // legacy device-bound access, kept for old events
   doorCode: string;
   title: string;
   mode: EventMode;
+  vibeLabel: string; // display label; free text when mode === "custom"
   crossCategory: boolean; // only match across the two categories (dating style)
   categories: Category[];
   roundMinutes: number;

@@ -42,3 +42,28 @@ export function loadHostToken(code: string): string | null {
 export function saveHostToken(code: string, token: string) {
   localStorage.setItem(hostKey(code), token);
 }
+
+/* ---- host account session ---- */
+
+const SESSION_KEY = "twyn:session";
+const HOST_NAME_KEY = "twyn:hostname";
+
+export function loadSession(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem(SESSION_KEY);
+}
+
+export function saveSession(session: string, name: string) {
+  localStorage.setItem(SESSION_KEY, session);
+  localStorage.setItem(HOST_NAME_KEY, name);
+}
+
+export function clearSession() {
+  localStorage.removeItem(SESSION_KEY);
+  localStorage.removeItem(HOST_NAME_KEY);
+}
+
+export function loadHostName(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem(HOST_NAME_KEY);
+}

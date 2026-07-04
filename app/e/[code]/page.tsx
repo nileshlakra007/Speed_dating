@@ -122,10 +122,10 @@ function JoinScreen({
 
   return (
     <Shell>
-      <h1 className="mt-6 text-3xl font-extrabold">{anon.title}</h1>
+      <h1 className="mt-6 font-display text-3xl font-medium">{anon.title}</h1>
       <p className="mt-1 text-white/50">
         You&apos;re joining with code{" "}
-        <span className="font-bold tracking-widest text-fuchsia-300">{anon.code}</span>
+        <span className="font-bold tracking-widest text-gold-light">{anon.code}</span>
       </p>
       {anon.status === "ended" ? (
         <p className="card mt-6 text-white/60">This event has ended 👋</p>
@@ -148,7 +148,7 @@ function JoinScreen({
                 <button
                   key={e}
                   className={`rounded-xl p-1.5 text-2xl transition ${
-                    emoji === e ? "bg-fuchsia-500/30 ring-2 ring-fuchsia-400" : "bg-white/5"
+                    emoji === e ? "bg-gold/20 ring-2 ring-gold" : "bg-white/5"
                   }`}
                   onClick={() => setEmoji(e)}
                 >
@@ -175,18 +175,18 @@ function JoinScreen({
             </div>
           )}
           {selected?.full && (
-            <p className="rounded-xl bg-amber-500/10 p-3 text-sm text-amber-300">
+            <p className="rounded-xl bg-gold/10 p-3 text-sm text-gold-light">
               This group is full — you&apos;ll join the waitlist and get in if a spot
               opens up.
             </p>
           )}
-          {err && <p className="text-sm text-rose-400">{err}</p>}
+          {err && <p className="text-sm text-red-300/90">{err}</p>}
           <button
             className="btn-primary w-full text-lg"
             disabled={busy || !name.trim() || !category}
             onClick={join}
           >
-            {busy ? "Joining…" : selected?.full ? "Join waitlist" : "I'm in ✌️"}
+            {busy ? "Joining…" : selected?.full ? "Join waitlist" : "I'm in"}
           </button>
         </div>
       )}
@@ -264,7 +264,7 @@ function AttendeeScreen({
         <Countdown
           endsAt={round.endsAt}
           serverNow={view.serverNow}
-          className="mt-3 block text-3xl font-extrabold text-fuchsia-300"
+          className="mt-3 block font-display text-3xl font-medium text-gold-light"
         />
       </div>
     );
@@ -287,7 +287,7 @@ function AttendeeScreen({
     <Shell>
       <div className="mt-4 flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-extrabold">{view.title}</h1>
+          <h1 className="font-display text-xl font-medium">{view.title}</h1>
           <p className="text-xs text-white/40">
             {me.emoji} {me.name} · code {view.code}
           </p>
@@ -304,7 +304,7 @@ function AttendeeScreen({
           </button>
         )}
       </div>
-      {err && <p className="mt-3 text-sm text-rose-400">{err}</p>}
+      {err && <p className="mt-3 text-sm text-red-300/90">{err}</p>}
       {body}
     </Shell>
   );
@@ -327,7 +327,7 @@ function CheckIn({ act, busy }: { act: any; busy: boolean }) {
         }}
       >
         <input
-          className="input flex-1 text-center text-2xl font-extrabold tracking-[0.4em]"
+          className="input flex-1 text-center text-2xl font-semibold tracking-[0.4em]"
           inputMode="numeric"
           placeholder="0000"
           maxLength={4}
@@ -365,7 +365,7 @@ function MatchCard({
         <Countdown
           endsAt={round.endsAt}
           serverNow={view.serverNow}
-          className="text-2xl font-extrabold text-fuchsia-300"
+          className="text-2xl font-semibold text-gold-light"
         />
       </div>
 
@@ -383,7 +383,7 @@ function MatchCard({
 
       <div className="card mt-3 text-center">
         <p className="text-sm text-white/50">Your twin this round</p>
-        <p className="mt-1 text-2xl font-extrabold">
+        <p className="mt-1 text-2xl font-semibold">
           {m.partner?.emoji} {m.partner?.name}
         </p>
         <p className="mt-3 rounded-xl bg-white/5 p-3 text-sm text-white/70">
@@ -420,7 +420,7 @@ function FeedbackForm({ round, act, busy }: { round: any; act: any; busy: boolea
 
   return (
     <div className="card mt-6">
-      <h2 className="text-xl font-extrabold">
+      <h2 className="font-display text-xl font-medium">
         Round {round.n} — how was {partner?.name}? {partner?.emoji}
       </h2>
       <p className="mt-1 text-xs text-white/40">
@@ -495,7 +495,7 @@ function Connections({ view }: { view: any }) {
   return (
     <div className="card mt-6 text-center">
       <div className="text-4xl">{conns.length > 0 ? "💞" : "🌙"}</div>
-      <h2 className="mt-2 text-xl font-extrabold">
+      <h2 className="mt-2 font-display text-xl font-medium">
         {conns.length > 0 ? "Your mutuals" : "That's a wrap"}
       </h2>
       {conns.length > 0 ? (

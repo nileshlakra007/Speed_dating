@@ -1,88 +1,158 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { AuthCard } from "@/components/AuthCard";
+import { GROUP_PRESETS, GroupDraft, GroupsEditor } from "@/components/GroupsEditor";
 import { TwynLogo } from "@/components/Logo";
-import { api, saveHostToken } from "@/lib/client";
+import { api, clearSession, loadSession } from "@/lib/client";
 
-type Mode = "dating" | "mixer" | "networking";
+type Mode = "dating" | "mixer" | "networking" | "custom";
 
-const MODE_PRESETS: Record<
-  Mode,
-  { label: string; emoji: string; categories: { name: string; cap: number }[]; cross: boolean }
-> = {
-  dating: {
-    label: "Dating",
-    emoji: "💘",
-    categories: [
-      { name: "Men", cap: 20 },
-      { name: "Women", cap: 20 },
-    ],
-    cross: true,
-  },
-  mixer: {
-    label: "Social mixer",
-    emoji: "🪩",
-    categories: [{ name: "Everyone", cap: 40 }],
-    cross: false,
-  },
-  networking: {
-    label: "Networking",
-    emoji: "💼",
-    categories: [{ name: "Everyone", cap: 40 }],
-    cross: false,
-  },
-};
+const VIBES: { key: Mode; label: string }[] = [
+  { key: "dating", label: "Dating" },
+  { key: "mixer", label: "Social mixer" },
+  { key: "networking", label: "Networking" },
+  { key: "custom", label: "Your own" },
+];
+
+const ROUND_CHOICES = [3, 5, 10, 15, 20];
 
 export default function CreateEvent() {
   const router = useRouter();
+  const [authed, setAuthed] = useState<boolean | null>(null);
+  const [me, setMe] = useState<{ name: string; events: any[] } | null>(null);
+
+  const loadMe = useCallback(async () => {
+    const session = loadSession();
+    if (!session) {
+      setAuthed(false);
+      return;
+    }
+    try {
+      const res = await api(`/api/auth/me?session=${encodeURIComponent(session)}`);
+      setMe(res);
+      setAuthed(true);
+    } catch {
+      clearSession();
+      setAuthed(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadMe();
+  }, [loadMe]);
+
+  return (
+    <main className="mx-auto max-w-md px-6 py-8 pb-20">
+      <div className="flex items-center justify-between">
+        <Link href="/">
+          <TwynLogo size={28} />
+        </Link>
+        {authed && me && (
+          <button
+            className="text-xs font-medium text-white/35 transition hover:text-white/70"
+            onClick={() => {
+              clearSession();
+              setAuthed(false);
+              setMe(null);
+            }}
+          >
+            {me.name} · sign out
+          </button>
+        )}
+      </div>
+
+      <h1 className="mt-8 font-display text-4xl font-medium">Host an event</h1>
+
+      {authed === null && <p className="mt-8 text-white/35">One moment…</p>}
+      {authed === false && <AuthCard onAuthed={() => loadMe()} />}
+      {authed && me && (
+        <>
+          {me.events.length > 0 && (
+            <div className="card mt-6">
+              <p className="label">Your events</p>
+              <div className="mt-3 space-y-1">
+                {me.events.map((e: any) => (
+                  <Link
+                    key={e.code}
+                    href={`/host/${e.code}`}
+                    className="flex items-center justify-between rounded-lg px-3 py-2.5 transition hover:bg-white/[0.05]"
+                  >
+                    <span className="text-sm font-medium">{e.title}</span>
+                    <span className="text-xs text-white/35">
+                      {e.code} · {e.status}
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          )}
+          <CreateForm onCreated={(code) => router.push(`/host/${code}`)} />
+        </>
+      )}
+    </main>
+  );
+}
+
+function CreateForm({ onCreated }: { onCreated: (code: string) => void }) {
   const [title, setTitle] = useState("");
   const [mode, setMode] = useState<Mode>("mixer");
-  const [categories, setCategories] = useState(MODE_PRESETS.mixer.categories);
+  const [vibeLabel, setVibeLabel] = useState("");
+  const [preset, setPreset] = useState("everyone");
+  const [groups, setGroups] = useState<GroupDraft[]>(
+    GROUP_PRESETS[0].groups.map((g) => ({ ...g }))
+  );
   const [cross, setCross] = useState(false);
   const [roundMinutes, setRoundMinutes] = useState(10);
+  const [customRound, setCustomRound] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
 
-  const pickMode = (m: Mode) => {
+  const pickVibe = (m: Mode) => {
     setMode(m);
-    setCategories(MODE_PRESETS[m].categories.map((c) => ({ ...c })));
-    setCross(MODE_PRESETS[m].cross);
+    if (m === "dating") {
+      applyPreset("gender");
+      setCross(true);
+    }
   };
 
-  const setCat = (i: number, patch: Partial<{ name: string; cap: number }>) =>
-    setCategories((cs) => cs.map((c, j) => (j === i ? { ...c, ...patch } : c)));
+  const applyPreset = (key: string) => {
+    const p = GROUP_PRESETS.find((p) => p.key === key)!;
+    setPreset(key);
+    setGroups(p.groups.map((g) => ({ ...g })));
+    setCross(false);
+  };
 
   const submit = async () => {
     setBusy(true);
     setError("");
     try {
-      const res = await api<{ code: string; hostToken: string }>("/api/events", {
+      const res = await api<{ code: string }>("/api/events", {
+        session: loadSession(),
         title,
         mode,
-        categories,
-        crossCategory: cross && categories.length === 2,
+        vibeLabel,
+        categories: groups,
+        crossCategory: cross && groups.length === 2,
         roundMinutes,
       });
-      saveHostToken(res.code, res.hostToken);
-      router.push(`/host/${res.code}`);
-    } catch (e: any) {
-      setError(e.message);
+      onCreated(res.code);
+    } catch (e: unknown) {
+      setError(e instanceof Error ? e.message : "Something went wrong");
       setBusy(false);
     }
   };
 
   return (
-    <main className="mx-auto max-w-md px-6 py-8">
-      <TwynLogo size={30} />
-      <h1 className="mt-6 text-3xl font-extrabold">Host an event 🪩</h1>
-
-      <div className="card mt-6 space-y-5">
+    <>
+      <div className="card mt-6 space-y-6">
         <div>
-          <label className="text-sm font-semibold text-white/60">Event name</label>
+          <label className="label">Event name</label>
           <input
             className="input mt-1.5"
-            placeholder="Rooftop mixer @ Luna Bar"
+            placeholder="An Evening at Luna"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             maxLength={60}
@@ -90,74 +160,52 @@ export default function CreateEvent() {
         </div>
 
         <div>
-          <label className="text-sm font-semibold text-white/60">Vibe</label>
+          <label className="label">Vibe</label>
           <div className="mt-2 flex flex-wrap gap-2">
-            {(Object.keys(MODE_PRESETS) as Mode[]).map((m) => (
+            {VIBES.map((v) => (
               <button
-                key={m}
-                className={`chip ${mode === m ? "chip-on" : ""}`}
-                onClick={() => pickMode(m)}
+                key={v.key}
+                type="button"
+                className={`chip ${mode === v.key ? "chip-on" : ""}`}
+                onClick={() => pickVibe(v.key)}
               >
-                {MODE_PRESETS[m].emoji} {MODE_PRESETS[m].label}
+                {v.label}
               </button>
             ))}
           </div>
+          {mode === "custom" && (
+            <input
+              className="input mt-3"
+              placeholder="Name your vibe — Wine & Strangers, Founders' Table…"
+              value={vibeLabel}
+              maxLength={30}
+              onChange={(e) => setVibeLabel(e.target.value)}
+            />
+          )}
         </div>
 
         <div>
-          <div className="flex items-center justify-between">
-            <label className="text-sm font-semibold text-white/60">
-              Groups &amp; slots
-            </label>
-            {categories.length < 4 && (
+          <label className="label">How should people be grouped?</label>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {GROUP_PRESETS.map((p) => (
               <button
-                className="text-sm font-bold text-fuchsia-300"
-                onClick={() =>
-                  setCategories((cs) => [...cs, { name: "", cap: 20 }])
-                }
+                key={p.key}
+                type="button"
+                className={`chip ${preset === p.key ? "chip-on" : ""}`}
+                onClick={() => applyPreset(p.key)}
               >
-                + add group
+                {p.label}
               </button>
-            )}
-          </div>
-          <div className="mt-2 space-y-2">
-            {categories.map((c, i) => (
-              <div key={i} className="flex items-center gap-2">
-                <input
-                  className="input flex-1"
-                  placeholder="Group name"
-                  value={c.name}
-                  onChange={(e) => setCat(i, { name: e.target.value })}
-                  maxLength={20}
-                />
-                <input
-                  className="input w-24 text-center"
-                  type="number"
-                  min={1}
-                  max={500}
-                  value={c.cap}
-                  onChange={(e) => setCat(i, { cap: Number(e.target.value) })}
-                />
-                {categories.length > 1 && (
-                  <button
-                    className="px-1 text-white/40 hover:text-rose-400"
-                    onClick={() =>
-                      setCategories((cs) => cs.filter((_, j) => j !== i))
-                    }
-                  >
-                    ✕
-                  </button>
-                )}
-              </div>
             ))}
           </div>
-          <p className="mt-1.5 text-xs text-white/35">
-            When a group is full, new joiners go to that group&apos;s waitlist.
-          </p>
+          <div className="mt-3">
+            <GroupsEditor groups={groups} onChange={setGroups} />
+          </div>
         </div>
 
-        {categories.length === 2 && (
+        {groups.length === 2 && (
           <button
+            type="button"
             className={`chip w-full ${cross ? "chip-on" : ""}`}
             onClick={() => setCross(!cross)}
           >
@@ -166,35 +214,66 @@ export default function CreateEvent() {
         )}
 
         <div>
-          <label className="text-sm font-semibold text-white/60">
-            Round length
-          </label>
-          <div className="mt-2 flex gap-2">
-            {[3, 5, 10, 15, 20].map((m) => (
+          <label className="label">Round length</label>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {ROUND_CHOICES.map((m) => (
               <button
                 key={m}
-                className={`chip ${roundMinutes === m ? "chip-on" : ""}`}
-                onClick={() => setRoundMinutes(m)}
+                type="button"
+                className={`chip ${!customRound && roundMinutes === m ? "chip-on" : ""}`}
+                onClick={() => {
+                  setCustomRound(false);
+                  setRoundMinutes(m);
+                }}
               >
-                {m}m
+                {m} min
               </button>
             ))}
+            <button
+              type="button"
+              className={`chip ${customRound ? "chip-on" : ""}`}
+              onClick={() => setCustomRound(true)}
+            >
+              Custom
+            </button>
           </div>
-          <p className="mt-1.5 text-xs text-white/35">
-            Tip: use 3 minutes when testing with friends.
+          {customRound && (
+            <div className="mt-3 flex items-center gap-3">
+              <input
+                className="input w-28 text-center"
+                type="number"
+                min={1}
+                max={120}
+                value={roundMinutes}
+                onChange={(e) =>
+                  setRoundMinutes(
+                    Math.min(120, Math.max(1, Number(e.target.value) || 1))
+                  )
+                }
+              />
+              <span className="text-sm text-white/40">minutes per round (1–120)</span>
+            </div>
+          )}
+          <p className="mt-1.5 text-xs text-white/30">
+            You can adjust this any time, even between rounds.
           </p>
         </div>
       </div>
 
-      {error && <p className="mt-3 text-sm text-rose-400">{error}</p>}
+      {error && <p className="mt-3 text-sm text-red-300/90">{error}</p>}
 
       <button
-        className="btn-primary mt-5 w-full text-lg"
-        disabled={busy || !title.trim() || categories.some((c) => !c.name.trim())}
+        className="btn-primary mt-5 w-full"
+        disabled={
+          busy ||
+          !title.trim() ||
+          groups.some((g) => !g.name.trim()) ||
+          (mode === "custom" && !vibeLabel.trim())
+        }
         onClick={submit}
       >
-        {busy ? "Creating…" : "Create event ✨"}
+        {busy ? "Creating…" : "Create event"}
       </button>
-    </main>
+    </>
   );
 }

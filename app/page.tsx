@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import { TwynLogo, TwynMark } from "@/components/Logo";
+import { TwynMark } from "@/components/Logo";
 
 export default function Home() {
   const router = useRouter();
@@ -10,33 +10,30 @@ export default function Home() {
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col px-6 py-10">
-      <div className="flex justify-center pt-8">
-        <TwynMark size={88} />
+      <div className="flex justify-center pt-10">
+        <TwynMark size={72} />
       </div>
-      <h1 className="mt-6 text-center text-5xl font-extrabold tracking-tight">
+      <h1 className="mt-8 text-center font-display text-6xl font-medium tracking-tight">
         <span className="grad-text">twyn</span>
       </h1>
-      <p className="mt-3 text-center text-lg text-white/60">
-        find your twin in the room ✨
-        <br />
-        <span className="text-sm">
-          timed rounds · matching symbols · zero awkward wandering
-        </span>
+      <p className="mt-4 text-center text-white/50">
+        Find your twin in the room.
+      </p>
+      <p className="mt-1 text-center text-xs uppercase tracking-[0.2em] text-white/25">
+        timed rounds · matched symbols · in person
       </p>
 
-      <div className="card mt-10">
-        <label className="text-sm font-semibold text-white/60">
-          Got an event code?
-        </label>
+      <div className="card mt-12">
+        <p className="label">Invited to an event?</p>
         <form
-          className="mt-2 flex gap-2"
+          className="mt-3 flex gap-2"
           onSubmit={(e) => {
             e.preventDefault();
             if (code.trim()) router.push(`/e/${code.trim().toUpperCase()}`);
           }}
         >
           <input
-            className="input flex-1 text-center text-xl font-bold uppercase tracking-[0.3em]"
+            className="input flex-1 text-center text-xl font-semibold uppercase tracking-[0.3em]"
             placeholder="ABC12"
             maxLength={5}
             value={code}
@@ -48,23 +45,21 @@ export default function Home() {
         </form>
       </div>
 
-      <div className="my-6 flex items-center gap-3 text-white/30">
-        <div className="h-px flex-1 bg-white/10" />
+      <div className="my-8 flex items-center gap-4 text-xs uppercase tracking-widest text-white/20">
+        <div className="hairline flex-1" />
         or
-        <div className="h-px flex-1 bg-white/10" />
+        <div className="hairline flex-1" />
       </div>
 
-      <button
-        className="btn-ghost w-full text-lg"
-        onClick={() => router.push("/create")}
-      >
-        🪩 Host an event
+      <button className="btn-ghost w-full" onClick={() => router.push("/create")}>
+        Host an event
       </button>
 
-      <div className="mt-auto pt-12 text-center text-xs text-white/25">
-        how it works: register → check in at the door → every round you get a
-        match + a shared symbol → find the person showing the same one 💫
-      </div>
+      <p className="mt-auto pt-14 text-center text-xs leading-relaxed text-white/25">
+        Register, check in at the door, and each round you&apos;re matched with
+        someone in the room. You both see the same symbol — find the person
+        showing it.
+      </p>
     </main>
   );
 }
