@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { handle } from "@/lib/api";
 import { requireAccount } from "@/lib/auth";
+import { devAvatarsEnabled } from "@/lib/devAvatars";
 import { getEvent } from "@/lib/store";
 import { ApiError, EventData } from "@/lib/types";
 import { attendeeView, categoryCounts, hostView } from "@/lib/views";
@@ -62,7 +63,7 @@ function anonView(event: EventData, signedInAs?: string) {
       vibeLabel: event.vibeLabel,
       status: event.status,
       signedInAs: signedInAs ?? null,
-      photosEnabled: !!process.env.BLOB_READ_WRITE_TOKEN,
+      photosEnabled: !!process.env.BLOB_READ_WRITE_TOKEN || devAvatarsEnabled,
       grouping: event.grouping ?? { type: "label" },
       categories: categoryCounts(event).map((c) => ({
         id: c.id,

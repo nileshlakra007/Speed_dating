@@ -11,10 +11,12 @@ export const POST = handle(async (req, ctx: { params: Promise<{ code: string }> 
   const name = String(body.name ?? "").trim().slice(0, 30);
   const emoji = String(body.emoji ?? "🙂").slice(0, 8);
   if (!name) throw new ApiError("Enter your name");
-  // only accept avatars that live in our own blob store
+  // only accept avatars that live in our own blob store (or the local
+  // dev avatar route when testing without Vercel Blob)
   const photoUrl =
     typeof body.photoUrl === "string" &&
-    /^https:\/\/[\w-]+\.public\.blob\.vercel-storage\.com\//.test(body.photoUrl)
+    (/^https:\/\/[\w-]+\.public\.blob\.vercel-storage\.com\//.test(body.photoUrl) ||
+      /^\/api\/upload\/[A-Za-z0-9]+$/.test(body.photoUrl))
       ? body.photoUrl
       : undefined;
 
