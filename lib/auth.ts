@@ -1,6 +1,6 @@
 import { id } from "./api";
 import { getAccountById, getSession, saveAccount, setSession } from "./store";
-import { ApiError, HostAccount } from "./types";
+import { ApiError, Account } from "./types";
 
 const ITERATIONS = 100_000;
 
@@ -53,9 +53,9 @@ export async function createSession(hostId: string): Promise<string> {
 }
 
 /** Resolve a session token to its host account or throw 401. */
-export async function requireHost(
+export async function requireAccount(
   session: string | null | undefined
-): Promise<HostAccount> {
+): Promise<Account> {
   if (!session) throw new ApiError("Sign in to continue", 401);
   const hostId = await getSession(session);
   if (!hostId) throw new ApiError("Session expired — sign in again", 401);
@@ -64,7 +64,7 @@ export async function requireHost(
   return account;
 }
 
-export async function recordEventOwnership(host: HostAccount, code: string) {
+export async function recordEventOwnership(host: Account, code: string) {
   if (!host.events.includes(code)) {
     host.events.push(code);
     await saveAccount(host);

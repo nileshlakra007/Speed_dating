@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { handle } from "@/lib/api";
-import { requireHost } from "@/lib/auth";
+import { requireAccount } from "@/lib/auth";
 import { getEvent } from "@/lib/store";
 
 export const GET = handle(async (req) => {
   const session = new URL(req.url).searchParams.get("session");
-  const host = await requireHost(session);
+  const host = await requireAccount(session);
 
   // resolve owned events (drop expired ones)
   const events = (

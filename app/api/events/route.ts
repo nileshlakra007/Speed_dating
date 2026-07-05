@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { doorCode, eventCode, handle, id } from "@/lib/api";
-import { recordEventOwnership, requireHost } from "@/lib/auth";
+import { recordEventOwnership, requireAccount } from "@/lib/auth";
 import { parseGroups } from "@/lib/groups";
 import { createEvent } from "@/lib/store";
 import { ApiError, Category, EventData, EventMode, Grouping } from "@/lib/types";
@@ -14,7 +14,7 @@ const MODE_LABELS: Record<string, string> = {
 
 export const POST = handle(async (req) => {
   const body = await req.json();
-  const host = await requireHost(body.session);
+  const host = await requireAccount(body.session);
 
   const title = String(body.title ?? "").trim();
   const mode = (MODES.includes(body.mode) ? body.mode : "mixer") as EventMode;

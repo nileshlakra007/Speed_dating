@@ -1,11 +1,15 @@
 export type EventMode = "dating" | "mixer" | "networking" | "custom";
 
-export interface HostAccount {
+/** One account model for everyone — hosting and attending are
+ * capabilities of the same person, not separate identities. */
+export interface Account {
   id: string;
   name: string;
-  email: string; // stored lowercase
-  passwordHash: string; // salt.hash (PBKDF2-SHA256)
-  events: string[]; // codes of events this host owns
+  email: string; // stored lowercase, verified when from Google
+  passwordHash?: string; // salt.hash (PBKDF2-SHA256); absent for Google-only accounts
+  googleSub?: string; // Google's stable subject id, set after first Google sign-in
+  picture?: string; // profile photo URL from Google
+  events: string[]; // codes of events this account hosts
   createdAt: number;
 }
 
@@ -30,6 +34,7 @@ export interface Grouping {
 export interface Attendee {
   id: string;
   token: string;
+  accountId?: string; // set when the guest joined signed-in — enables cross-device recovery
   name: string;
   emoji: string;
   category: string; // category id
@@ -70,7 +75,7 @@ export interface Feedback {
 
 export interface EventData {
   code: string;
-  hostId: string; // owning HostAccount
+  hostId: string; // owning Account
   hostToken: string; // legacy device-bound access, kept for old events
   doorCode: string;
   title: string;

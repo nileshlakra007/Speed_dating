@@ -1,6 +1,6 @@
 import { neon } from "@neondatabase/serverless";
 import { Redis } from "@upstash/redis";
-import { ApiError, EventData, HostAccount } from "./types";
+import { ApiError, EventData, Account } from "./types";
 
 /**
  * Repository pattern: all persistence goes through Store, so the backing
@@ -14,9 +14,9 @@ export interface Store {
   create(data: EventData): Promise<void>;
   mutate(code: string, fn: (event: EventData) => void): Promise<EventData>;
   // host accounts
-  getAccountByEmail(email: string): Promise<HostAccount | null>;
-  getAccountById(id: string): Promise<HostAccount | null>;
-  saveAccount(account: HostAccount): Promise<void>;
+  getAccountByEmail(email: string): Promise<Account | null>;
+  getAccountById(id: string): Promise<Account | null>;
+  saveAccount(account: Account): Promise<void>;
   // sessions (token -> hostId)
   getSession(token: string): Promise<string | null>;
   setSession(token: string, hostId: string): Promise<void>;
@@ -36,14 +36,14 @@ const sessKey = (token: string) => `twyn:sess:${token}`;
 /** Dev/single-process store. Not suitable for serverless deploys. */
 class MemoryStore implements Store {
   private events: Map<string, Versioned>;
-  private accounts: Map<string, HostAccount>;
+  private accounts: Map<string, Account>;
   private emails: Map<string, string>;
   private sessions: Map<string, string>;
 
   constructor() {
     const g = globalThis as unknown as {
       __twynEvents?: Map<string, Versioned>;
-      __twynAccounts?: Map<string, HostAccount>;
+      __twynAccounts?: Map<string, Account>;
       __twynEmails?: Map<string, string>;
       __twynSessions?: Map<string, string>;
     };
@@ -81,7 +81,7 @@ class MemoryStore implements Store {
     return this.accounts.get(id) ?? null;
   }
 
-  async saveAccount(account: HostAccount) {
+  async saveAccount(account: Account) {
     this.accounts.set(account.id, JSON.parse(JSON.stringify(account)));
     this.emails.set(account.email.toLowerCase(), account.id);
   }
@@ -148,10 +148,10 @@ return 1
   }
 
   async getAccountById(id: string) {
-    return (await this.redis.get<HostAccount>(acctKey(id))) ?? null;
+    return (await this.redis.get<Account>(acctKey(id))) ?? null;
   }
 
-  async saveAccount(account: HostAccount) {
+  async saveAccount(account: Account) {
     await this.redis.set(acctKey(account.id), account);
     await this.redis.set(emailKey(account.email), account.id);
   }
@@ -271,7 +271,7 @@ class NeonStore implements Store {
     await this.init();
     const rows = (await this.sql`
       SELECT data FROM twyn_accounts WHERE email = ${email.toLowerCase()}`) as {
-      data: HostAccount;
+      data: Account;
     }[];
     return rows.length ? rows[0].data : null;
   }
@@ -280,12 +280,12 @@ class NeonStore implements Store {
     await this.init();
     const rows = (await this.sql`
       SELECT data FROM twyn_accounts WHERE id = ${id}`) as {
-      data: HostAccount;
+      data: Account;
     }[];
     return rows.length ? rows[0].data : null;
   }
 
-  async saveAccount(account: HostAccount) {
+  async saveAccount(account: Account) {
     await this.init();
     await this.sql`
       INSERT INTO twyn_accounts (id, email, data)
@@ -331,7 +331,7 @@ export const mutateEvent = (code: string, fn: (event: EventData) => void) =>
 export const getAccountByEmail = (email: string) =>
   store.getAccountByEmail(email);
 export const getAccountById = (id: string) => store.getAccountById(id);
-export const saveAccount = (account: HostAccount) =>
+export const saveAccount = (account: Account) =>
   store.saveAccount(account);
 export const getSession = (token: string) => store.getSession(token);
 export const setSession = (token: string, hostId: string) =>

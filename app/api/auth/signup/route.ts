@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { handle, id } from "@/lib/api";
 import { createSession, hashPassword } from "@/lib/auth";
 import { getAccountByEmail, saveAccount } from "@/lib/store";
-import { ApiError, HostAccount } from "@/lib/types";
+import { ApiError, Account } from "@/lib/types";
 
 export const POST = handle(async (req) => {
   const body = await req.json();
@@ -20,7 +20,7 @@ export const POST = handle(async (req) => {
   if (existing)
     throw new ApiError("An account with this email already exists — sign in instead", 409);
 
-  const account: HostAccount = {
+  const account: Account = {
     id: id(16),
     name,
     email,

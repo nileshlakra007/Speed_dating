@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { handle } from "@/lib/api";
-import { requireHost } from "@/lib/auth";
+import { requireAccount } from "@/lib/auth";
 import { getEvent } from "@/lib/store";
-import { ApiError } from "@/lib/types";
+import { ApiError, EventData } from "@/lib/types";
 import { attendeeView, categoryCounts, hostView } from "@/lib/views";
 
 export const GET = handle(async (req, ctx: { params: Promise<{ code: string }> }) => {
@@ -17,10 +17,21 @@ export const GET = handle(async (req, ctx: { params: Promise<{ code: string }> }
   const token = url.searchParams.get("token");
 
   if (session) {
-    const host = await requireHost(session);
-    if (host.id !== event.hostId)
-      throw new ApiError("This event belongs to a different host", 403);
-    return NextResponse.json({ role: "host", view: hostView(event) });
+    const account = await requireAccount(session);
+    if (account.id === event.hostId)
+      return NextResponse.json({ role: "host", view: hostView(event) });
+    // cross-device recovery: a signed-in guest who joined before gets
+    // their spot (and its credentials) back on any device
+    const mine = Object.values(event.attendees).find(
+      (a) => a.accountId === account.id && !a.left
+    );
+    if (mine)
+      return NextResponse.json({
+        role: "attendee",
+        credentials: { userId: mine.id, token: mine.token },
+        view: attendeeView(event, mine.id),
+      });
+    return anonView(event, account.name);
   }
 
   // legacy device-bound host access (events created before host accounts)
@@ -38,6 +49,10 @@ export const GET = handle(async (req, ctx: { params: Promise<{ code: string }> }
   }
 
   // Anonymous preview (join screen)
+  return anonView(event);
+});
+
+function anonView(event: EventData, signedInAs?: string) {
   return NextResponse.json({
     role: "anon",
     view: {
@@ -46,6 +61,7 @@ export const GET = handle(async (req, ctx: { params: Promise<{ code: string }> }
       mode: event.mode,
       vibeLabel: event.vibeLabel,
       status: event.status,
+      signedInAs: signedInAs ?? null,
       grouping: event.grouping ?? { type: "label" },
       categories: categoryCounts(event).map((c) => ({
         id: c.id,
@@ -59,4 +75,4 @@ export const GET = handle(async (req, ctx: { params: Promise<{ code: string }> }
       })),
     },
   });
-});
+}

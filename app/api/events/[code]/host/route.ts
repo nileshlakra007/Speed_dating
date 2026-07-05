@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { handle } from "@/lib/api";
-import { requireHost } from "@/lib/auth";
+import { requireAccount } from "@/lib/auth";
 import { parseGroups } from "@/lib/groups";
 import { buildRound } from "@/lib/matching";
 import { mutateEvent } from "@/lib/store";
@@ -18,7 +18,7 @@ export const POST = handle(async (req, ctx: { params: Promise<{ code: string }> 
     userId?: string;
   };
 
-  const host = session ? await requireHost(session) : null;
+  const host = session ? await requireAccount(session) : null;
 
   const updated = await mutateEvent(code, (event) => {
     const authorized =

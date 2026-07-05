@@ -29,6 +29,10 @@ export default function HostDashboard() {
       : `hostToken=${encodeURIComponent(hostToken!)}`;
     try {
       const res = await api(`/api/events/${code}?${qs}`);
+      if (res.role !== "host") {
+        setError("This event belongs to a different host account.");
+        return;
+      }
       setView(res.view);
       setError("");
     } catch (e: unknown) {

@@ -4,7 +4,8 @@ import { useParams, useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Countdown } from "@/components/Countdown";
 import { TwynLogo } from "@/components/Logo";
-import { api, loadIdentity, saveIdentity } from "@/lib/client";
+import { GoogleSignIn } from "@/components/GoogleSignIn";
+import { api, loadIdentity, loadSession, saveIdentity } from "@/lib/client";
 
 const EMOJIS = ["🦊", "🐼", "🦄", "🐸", "🐙", "🦋", "🐯", "🐨", "🐵", "🐳", "🌵", "🍕", "🎸", "🛸", "🌊", "🔥"];
 
@@ -25,8 +26,27 @@ export default function EventPage() {
         );
         setView(res.view);
       } else {
-        const res = await api(`/api/events/${code}`);
-        setAnon(res.view);
+        // signed in? the server can restore a previously joined spot on any device
+        const session = loadSession();
+        let res;
+        if (session) {
+          try {
+            res = await api(
+              `/api/events/${code}?session=${encodeURIComponent(session)}`
+            );
+          } catch {
+            res = await api(`/api/events/${code}`); // stale session — browse anonymously
+          }
+        } else {
+          res = await api(`/api/events/${code}`);
+        }
+        if (res.role === "attendee" && res.credentials) {
+          identityRef.current = res.credentials;
+          saveIdentity(code, res.credentials);
+          setView(res.view);
+        } else {
+          setAnon(res.view);
+        }
       }
       setError("");
     } catch (e: any) {
@@ -58,7 +78,7 @@ export default function EventPage() {
 
   if (!identityRef.current)
     return anon ? (
-      <JoinScreen code={code} anon={anon} onJoined={onJoined} />
+      <JoinScreen code={code} anon={anon} onJoined={onJoined} onRefresh={refresh} />
     ) : (
       <Loading />
     );
@@ -90,14 +110,26 @@ function JoinScreen({
   code,
   anon,
   onJoined,
+  onRefresh,
 }: {
   code: string;
   anon: any;
   onJoined: (userId: string, token: string) => void;
+  onRefresh: () => void;
 }) {
   const isRange = anon.grouping?.type === "range";
   const attribute: string = anon.grouping?.attribute || "Age";
   const [name, setName] = useState("");
+  const [hasSession, setHasSession] = useState(false);
+
+  useEffect(() => {
+    setHasSession(!!loadSession());
+  }, []);
+
+  // signed-in guests get their name prefilled from their account
+  useEffect(() => {
+    if (anon.signedInAs) setName((n: string) => n || anon.signedInAs);
+  }, [anon.signedInAs]);
   const [emoji, setEmoji] = useState("🦊");
   const [value, setValue] = useState("");
   const [category, setCategory] = useState(
@@ -120,8 +152,8 @@ function JoinScreen({
       const res = await api<{ userId: string; token: string; waitlisted: boolean }>(
         `/api/events/${code}/join`,
         isRange
-          ? { name, emoji, value: Number(value) }
-          : { name, emoji, category }
+          ? { name, emoji, value: Number(value), session: loadSession() }
+          : { name, emoji, category, session: loadSession() }
       );
       onJoined(res.userId, res.token);
     } catch (e: any) {
@@ -225,6 +257,30 @@ function JoinScreen({
           >
             {busy ? "Joining…" : selected?.full ? "Join waitlist" : "I'm in"}
           </button>
+
+          {hasSession ? (
+            <p className="text-center text-xs text-white/35">
+              Signed in — your spot will follow you across devices.
+            </p>
+          ) : (
+            <div>
+              <div className="mb-3 flex items-center gap-3 text-xs uppercase tracking-widest text-white/20">
+                <div className="hairline flex-1" />
+                optional
+                <div className="hairline flex-1" />
+              </div>
+              <GoogleSignIn
+                onAuthed={() => {
+                  setHasSession(true);
+                  onRefresh();
+                }}
+              />
+              <p className="mt-2 text-center text-xs text-white/30">
+                Sign in to keep your spot if you switch phones or clear your
+                browser.
+              </p>
+            </div>
+          )}
         </div>
       )}
     </Shell>

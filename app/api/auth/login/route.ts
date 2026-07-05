@@ -10,7 +10,13 @@ export const POST = handle(async (req) => {
   const password = String(body.password ?? "");
 
   const account = await getAccountByEmail(email);
-  if (!account || !(await verifyPassword(password, account.passwordHash)))
+  if (account && !account.passwordHash)
+    throw new ApiError("This account uses Google sign-in — use the Google button", 400);
+  if (
+    !account ||
+    !account.passwordHash ||
+    !(await verifyPassword(password, account.passwordHash))
+  )
     throw new ApiError("Wrong email or password", 401);
 
   const session = await createSession(account.id);

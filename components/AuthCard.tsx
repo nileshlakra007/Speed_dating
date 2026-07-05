@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { GoogleSignIn } from "@/components/GoogleSignIn";
 import { api, saveSession } from "@/lib/client";
 
 export function AuthCard({ onAuthed }: { onAuthed: (name: string) => void }) {
@@ -54,8 +55,17 @@ export function AuthCard({ onAuthed }: { onAuthed: (name: string) => void }) {
           : "Welcome back."}
       </p>
 
+      <div className="mt-5">
+        <GoogleSignIn onAuthed={onAuthed} />
+      </div>
+      <div className="my-5 flex items-center gap-4 text-xs uppercase tracking-widest text-white/20">
+        <div className="hairline flex-1" />
+        or with email
+        <div className="hairline flex-1" />
+      </div>
+
       <form
-        className="mt-5 space-y-4"
+        className="space-y-4"
         onSubmit={(e) => {
           e.preventDefault();
           submit();
