@@ -6,6 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Countdown } from "@/components/Countdown";
 import { GroupDraft, GroupsEditor } from "@/components/GroupsEditor";
 import { TwynLogo } from "@/components/Logo";
+import { Avatar } from "@/components/PhotoPicker";
 import { api, loadHostToken, loadSession } from "@/lib/client";
 
 type Cred = { session?: string; hostToken?: string };
@@ -284,7 +285,7 @@ export default function HostDashboard() {
               key={a.id}
               className="flex items-center gap-2 rounded-lg bg-white/[0.04] px-3 py-2"
             >
-              <span className="text-lg">{a.emoji}</span>
+              <Avatar user={a} size={28} />
               <span className="flex-1 truncate text-sm font-medium">
                 {a.name}
                 <span className="ml-2 text-xs font-normal text-white/35">

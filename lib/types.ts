@@ -37,6 +37,7 @@ export interface Attendee {
   accountId?: string; // set when the guest joined signed-in — enables cross-device recovery
   name: string;
   emoji: string;
+  photoUrl?: string; // optional avatar (Vercel Blob)
   category: string; // category id
   checkedIn: boolean;
   left: boolean;

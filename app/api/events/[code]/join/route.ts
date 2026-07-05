@@ -11,6 +11,12 @@ export const POST = handle(async (req, ctx: { params: Promise<{ code: string }> 
   const name = String(body.name ?? "").trim().slice(0, 30);
   const emoji = String(body.emoji ?? "🙂").slice(0, 8);
   if (!name) throw new ApiError("Enter your name");
+  // only accept avatars that live in our own blob store
+  const photoUrl =
+    typeof body.photoUrl === "string" &&
+    /^https:\/\/[\w-]+\.public\.blob\.vercel-storage\.com\//.test(body.photoUrl)
+      ? body.photoUrl
+      : undefined;
 
   // signed-in guests get their attendee record linked to their account
   let account = null;
@@ -62,6 +68,7 @@ export const POST = handle(async (req, ctx: { params: Promise<{ code: string }> 
       accountId: account?.id,
       name,
       emoji,
+      photoUrl,
       category: cat.id,
       checkedIn: false,
       left: false,

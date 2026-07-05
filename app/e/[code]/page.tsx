@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Countdown } from "@/components/Countdown";
 import { TwynLogo } from "@/components/Logo";
 import { GoogleSignIn } from "@/components/GoogleSignIn";
+import { Avatar, PhotoPicker } from "@/components/PhotoPicker";
 import { api, loadIdentity, loadSession, saveIdentity } from "@/lib/client";
 
 const EMOJIS = ["🦊", "🐼", "🦄", "🐸", "🐙", "🦋", "🐯", "🐨", "🐵", "🐳", "🌵", "🍕", "🎸", "🛸", "🌊", "🔥"];
@@ -120,6 +121,7 @@ function JoinScreen({
   const isRange = anon.grouping?.type === "range";
   const attribute: string = anon.grouping?.attribute || "Age";
   const [name, setName] = useState("");
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [hasSession, setHasSession] = useState(false);
 
   useEffect(() => {
@@ -152,8 +154,8 @@ function JoinScreen({
       const res = await api<{ userId: string; token: string; waitlisted: boolean }>(
         `/api/events/${code}/join`,
         isRange
-          ? { name, emoji, value: Number(value), session: loadSession() }
-          : { name, emoji, category, session: loadSession() }
+          ? { name, emoji, photoUrl, value: Number(value), session: loadSession() }
+          : { name, emoji, photoUrl, category, session: loadSession() }
       );
       onJoined(res.userId, res.token);
     } catch (e: any) {
@@ -183,6 +185,9 @@ function JoinScreen({
               onChange={(e) => setName(e.target.value)}
             />
           </div>
+          {anon.photosEnabled && (
+            <PhotoPicker url={photoUrl} onChange={setPhotoUrl} />
+          )}
           <div>
             <label className="text-sm font-semibold text-white/60">Pick a vibe</label>
             <div className="mt-2 grid grid-cols-8 gap-1.5">
@@ -476,9 +481,10 @@ function MatchCard({
 
       <div className="card mt-3 text-center">
         <p className="text-sm text-white/50">Your twin this round</p>
-        <p className="mt-1 text-2xl font-semibold">
-          {m.partner?.emoji} {m.partner?.name}
-        </p>
+        <div className="mt-2 flex items-center justify-center gap-3">
+          {m.partner && <Avatar user={m.partner} size={52} />}
+          <p className="text-2xl font-semibold">{m.partner?.name}</p>
+        </div>
         <p className="mt-3 rounded-xl bg-white/5 p-3 text-sm text-white/70">
           💬 {m.icebreaker}
         </p>
@@ -598,8 +604,12 @@ function Connections({ view }: { view: any }) {
           </p>
           <div className="mt-4 space-y-2">
             {conns.map((c: any) => (
-              <div key={c.id} className="rounded-xl bg-white/5 px-4 py-3 text-lg font-bold">
-                {c.emoji} {c.name}
+              <div
+                key={c.id}
+                className="flex items-center justify-center gap-3 rounded-xl bg-white/5 px-4 py-3 text-lg font-bold"
+              >
+                <Avatar user={c} size={36} />
+                {c.name}
               </div>
             ))}
           </div>

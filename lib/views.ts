@@ -4,6 +4,7 @@ export interface PublicUser {
   id: string;
   name: string;
   emoji: string;
+  photoUrl?: string;
   category: string;
 }
 
@@ -11,6 +12,7 @@ const publicUser = (a: Attendee): PublicUser => ({
   id: a.id,
   name: a.name,
   emoji: a.emoji,
+  photoUrl: a.photoUrl,
   category: a.category,
 });
 

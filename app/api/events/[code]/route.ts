@@ -62,6 +62,7 @@ function anonView(event: EventData, signedInAs?: string) {
       vibeLabel: event.vibeLabel,
       status: event.status,
       signedInAs: signedInAs ?? null,
+      photosEnabled: !!process.env.BLOB_READ_WRITE_TOKEN,
       grouping: event.grouping ?? { type: "label" },
       categories: categoryCounts(event).map((c) => ({
         id: c.id,
